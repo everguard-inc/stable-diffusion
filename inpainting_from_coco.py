@@ -59,6 +59,7 @@ def run_sd_inpainting(
     prompts_file_path: str,
     logs_file_path: str,
     crop_size: int,
+    inference_resize: int = None,
     generate_prompt: bool = True,
     base_prompt: str = 'person, man',
     num_inference_steps: int = 60,
@@ -77,6 +78,7 @@ def run_sd_inpainting(
     pipe.to(device)
     
     crop_size = nearest_multiple(crop_size, multiple_coef)
+    inference_resize = nearest_multiple(inference_resize, multiple_coef)
     src_images_dir = Path(src_images_dir)
     prompts_file_path = Path(prompts_file_path)
     logs_file_path = Path(logs_file_path)
@@ -129,16 +131,26 @@ def run_sd_inpainting(
             mask = Image.fromarray(np.uint8(mask[:, :, 0] * 255) , 'L')
             mask = crop(mask, crop_y1, crop_x1, crop_h, crop_w)
             img = crop(image, crop_y1, crop_x1, crop_h, crop_w)
+
+            if inference_resize is not None:
+                mask = mask.resize((inference_resize, inference_resize), resample=Image.NEAREST)
+                img = img.resize((inference_resize, inference_resize), resample=Image.BILINEAR)
+            
+            inference_size = inference_resize if inference_resize else crop_size
             
             with torch.autocast(device_type=device.type):
                 img = pipe(
                     prompt=prompt, 
                     image=img, 
                     mask_image=mask, 
-                    height=crop_size, 
-                    width=crop_size,
+                    height=inference_size, 
+                    width=inference_size,
                     num_inference_steps=num_inference_steps,
                 ).images[0]
+            
+            if inference_resize is not None:
+                mask = mask.resize((crop_size, crop_size), resample=Image.NEAREST)
+                img = img.resize((crop_size, crop_size), resample=Image.BILINEAR)
             
             image, mask = apply_on_src_image(image, img, mask, crop_x1, crop_y1, crop_w, crop_h)
 
@@ -146,6 +158,7 @@ def run_sd_inpainting(
         
         with logs_file_path.open('a', encoding='utf-8') as f:
             f.write(f'{generated_img_basename}.jpg, "{prompt}"\n')
+
 
 def parce_args() -> argparse.Namespace:
     args = argparse.ArgumentParser()
@@ -156,6 +169,7 @@ def parce_args() -> argparse.Namespace:
     args.add_argument('--prompts_file_path', type=str, required=True)
     args.add_argument('--logs_file_path', type=str, required=True)
     args.add_argument('--crop_size', type=int, default=640)
+    args.add_argument('--inference_resize', type=int, default=None, required=False)
     args.add_argument('--num_infer_steps', type=int, default=60)
     args.add_argument('--generate_prompt', type=bool, default=False)
     args.add_argument('--base_prompt', type=str, default="person, man")
@@ -164,30 +178,36 @@ def parce_args() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
-    args = parce_args()
+    # args = parce_args()
+    
+    run_sd_inpainting(
+        device_id=1,
+        src_images_dir='/media/data2/vv/dvc_datasets/dataset_ppe/gerdau_hardhat_coco/images',
+        coco_ann_path='/media/data2/vv/tasks/2022_10_31_inpaint_heads_gerdau/heads_coco.json',
+        inpainted_images_dir='/media/data2/vv/tasks/2022_10_31_inpaint_heads_gerdau/images_only_head_hair_back_black_men_with_resize',
+        prompts_file_path='/media/data2/vv/tasks/2022_10_31_inpaint_heads_gerdau/prompt_only_head_hair_back_black_men.txt',
+        logs_file_path='/media/data2/vv/tasks/2022_10_31_inpaint_heads_gerdau/logs_only_head_hair_back_black_men_with_resize.csv',
+        base_prompt='',
+        crop_size=200,
+        inference_resize=512,
+        generate_prompt=False,
+        regexpx_group='gerdau'
+    )
     
     # run_sd_inpainting(
-    #     device_id=0,
-    #     src_images_dir='/media/data2/vv/dvc_datasets/dataset_ppe/gerdau_hardhat_coco/images',
-    #     coco_ann_path='/media/data2/vv/tasks/2022_10_31_inpaint_heads_gerdau/coco_ann.json',
-    #     inpainted_images_dir='/media/data2/vv/tasks/2022_10_31_inpaint_heads_gerdau/generated_images',
-    #     prompts_file_path='/media/data2/au/stable_diff_seah/filtered_prompts.txt',
-    #     logs_file_path='/media/data2/vv/tasks/2022_10_31_inpaint_heads_gerdau/logs.csv',
-    #     crop_size=512,
+    #     src_images_dir=args.src_images_dir,
+    #     coco_ann_path=args.coco_ann_path,
+    #     inpainted_images_dir=args.generated_images_dir,
+    #     prompts_file_path=args.prompts_file_path,
+    #     logs_file_path=args.logs_file_path,
+    #     crop_size=args.crop_size,
+    #     inference_resize=args.inference_resize,
+    #     generate_prompt=args.generate_prompt,
+    #     base_prompt=args.base_prompt,
+    #     num_inference_steps=args.num_infer_steps,
+    #     device_id=args.device_id,
+    #     regexpx_group=args.regexpx_group,
     # )
-    run_sd_inpainting(
-        src_images_dir=args.src_images_dir,
-        coco_ann_path=args.coco_ann_path,
-        inpainted_images_dir=args.generated_images_dir,
-        prompts_file_path=args.prompts_file_path,
-        logs_file_path=args.logs_file_path,
-        crop_size=args.crop_size,
-        generate_prompt=args.generate_prompt,
-        base_prompt=args.base_prompt,
-        num_inference_steps=args.num_infer_steps,
-        device_id=args.device_id,
-        regexpx_group=args.regexpx_group,
-    )
 
 
 
