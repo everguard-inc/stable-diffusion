@@ -99,7 +99,7 @@ def run_sd_inpainting(
     else:
         img_names = [img_path.name for img_path in src_images_dir.iterdir()]
         
-    for limage in random.choices(limages, k=len(limages)):
+    for limage in random.choices(limages, k=len(limages) * 2):
         if limage.name not in img_names:
             continue
         
@@ -178,36 +178,22 @@ def parce_args() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
-    # args = parce_args()
+    args = parce_args()
     
     run_sd_inpainting(
-        device_id=1,
-        src_images_dir='/media/data2/vv/dvc_datasets/dataset_ppe/gerdau_hardhat_coco/images',
-        coco_ann_path='/media/data2/vv/tasks/2022_10_31_inpaint_heads_gerdau/heads_coco.json',
-        inpainted_images_dir='/media/data2/vv/tasks/2022_10_31_inpaint_heads_gerdau/images_only_head_hair_back_black_men_with_resize',
-        prompts_file_path='/media/data2/vv/tasks/2022_10_31_inpaint_heads_gerdau/prompt_only_head_hair_back_black_men.txt',
-        logs_file_path='/media/data2/vv/tasks/2022_10_31_inpaint_heads_gerdau/logs_only_head_hair_back_black_men_with_resize.csv',
-        base_prompt='',
-        crop_size=200,
-        inference_resize=512,
-        generate_prompt=False,
-        regexpx_group='gerdau'
+        src_images_dir=args.src_images_dir,
+        coco_ann_path=args.coco_ann_path,
+        inpainted_images_dir=args.generated_images_dir,
+        prompts_file_path=args.prompts_file_path,
+        logs_file_path=args.logs_file_path,
+        crop_size=args.crop_size,
+        inference_resize=args.inference_resize,
+        generate_prompt=args.generate_prompt,
+        base_prompt=args.base_prompt,
+        num_inference_steps=args.num_infer_steps,
+        device_id=args.device_id,
+        regexpx_group=args.regexpx_group,
     )
-    
-    # run_sd_inpainting(
-    #     src_images_dir=args.src_images_dir,
-    #     coco_ann_path=args.coco_ann_path,
-    #     inpainted_images_dir=args.generated_images_dir,
-    #     prompts_file_path=args.prompts_file_path,
-    #     logs_file_path=args.logs_file_path,
-    #     crop_size=args.crop_size,
-    #     inference_resize=args.inference_resize,
-    #     generate_prompt=args.generate_prompt,
-    #     base_prompt=args.base_prompt,
-    #     num_inference_steps=args.num_infer_steps,
-    #     device_id=args.device_id,
-    #     regexpx_group=args.regexpx_group,
-    # )
 
 
 
