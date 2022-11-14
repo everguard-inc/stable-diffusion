@@ -65,7 +65,8 @@ def run_sd_inpainting(
     num_inference_steps: int = 60,
     device_id: int = 0,
     multiple_coef: int = 8,
-    regexpx_group: str = None
+    regexpx_group: str = None,
+    select_random_images: bool = False,
 ):
     pipe = StableDiffusionInpaintPipeline.from_pretrained(
         "runwayml/stable-diffusion-inpainting",
@@ -98,8 +99,10 @@ def run_sd_inpainting(
                 continue
     else:
         img_names = [img_path.name for img_path in src_images_dir.iterdir()]
-        
-    for limage in random.choices(limages, k=len(limages) * 2):
+    
+    if select_random_images:
+        limages = random.choices(limages, k=len(limages) * 2)
+    for limage in limages:
         if limage.name not in img_names:
             continue
         
@@ -174,6 +177,7 @@ def parce_args() -> argparse.Namespace:
     args.add_argument('--generate_prompt', type=bool, default=False)
     args.add_argument('--base_prompt', type=str, default="person, man")
     args.add_argument('--regexpx_group', type=str, default=None, required=False)
+    args.add_argument('--select_random_images', type=bool, default=False, required=False)
     return args.parse_args()
 
 
@@ -193,6 +197,7 @@ if __name__ == "__main__":
         num_inference_steps=args.num_infer_steps,
         device_id=args.device_id,
         regexpx_group=args.regexpx_group,
+        select_random_images=args.select_random_images,
     )
 
 
