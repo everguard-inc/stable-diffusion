@@ -53,6 +53,16 @@ def add_random_polygon_on_mask(size: int, mask_rect_coef: int = 2) -> np.ndarray
     mask = cv2.rectangle(empty_mask, (start_x, start_y), (end_x, end_y), (1), -1)
     return mask
 
+
+def get_specific_size_polygon_on_mask(size: int) -> np.ndarray:
+    mask = np.ones((size, size, 1), dtype=np.uint8)
+    padding = int(size / 5 * 2)
+    # padding = int(size / 2)
+    
+    mask = cv2.rectangle(mask, (0, 0), (size, size), (0), padding)
+
+    return mask
+
 def apply_on_src_image(
     src_image: Image, 
     generated_img: Image, 
@@ -96,6 +106,7 @@ def run_sd_inference(
     prompts_file_path: str,
     logs_file_path: str,
     crop_size: int = 640,
+    inference_resize: int = None,
     num_inference_steps: int = 60,
     generate_prompt: bool = False,
     base_prompt: str = "person, man",
@@ -113,6 +124,9 @@ def run_sd_inference(
     device = torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else 'cpu')
     pipe.to(device)
     
+    crop_size = nearest_multiple(crop_size, multiple_coef)
+    if inference_resize is not None:
+        inference_resize = nearest_multiple(inference_resize, multiple_coef)
     src_images_dir = Path(src_images_dir)
     masks_dir = Path(masks_dir)
     generated_images_dir = Path(generated_images_dir)
@@ -143,8 +157,8 @@ def run_sd_inference(
         src_image = Image.open(img_path)
         if src_image.height < crop_size or src_image.width < crop_size:
             continue
-        height, width = (nearest_multiple(src_image.height, multiple_coef), nearest_multiple(src_image.width, multiple_coef))
-        src_image = src_image.resize((width, height))
+        # height, width = (nearest_multiple(src_image.height, multiple_coef), nearest_multiple(src_image.width, multiple_coef))
+        # src_image = src_image.resize((width, height))
         
         if generate_prompt:
             prompt = generate_random_prompt(base_prompt, prompts)
@@ -155,23 +169,35 @@ def run_sd_inference(
             y1, x1, h, w = transform.get_params(src_image, (crop_size, crop_size))
 
             img = crop(src_image, y1, x1, h, w)
-            mask = add_random_polygon_on_mask(crop_size, 2) # для огня троечку сюда
+            if inference_resize:
+                mask = get_specific_size_polygon_on_mask(crop_size)
+            else:
+                mask = add_random_polygon_on_mask(crop_size, 2) # для огня троечку сюда
             mask = Image.fromarray(np.uint8(mask[:, :, 0] * 255) , 'L')
-            
+
+            if inference_resize:
+                mask = mask.resize((inference_resize, inference_resize), resample=Image.NEAREST)
+                img = img.resize((inference_resize, inference_resize), resample=Image.BILINEAR)
+
+            inference_size = inference_resize if inference_resize else crop_size
             with torch.autocast(device_type=device.type):
                 img = pipe(
                     prompt=prompt, 
                     image=img, 
                     mask_image=mask, 
-                    height=crop_size, 
-                    width=crop_size,
+                    height=inference_size, 
+                    width=inference_size,
                     num_inference_steps=num_inference_steps,
                 ).images[0]
             
+            if inference_resize:
+                img = img.resize((crop_size, crop_size), resample=Image.BILINEAR)
+                mask = mask.resize((crop_size, crop_size), resample=Image.NEAREST)
+            
             src_image, mask = apply_on_src_image(src_image, img, mask, x1, y1, w, h)
             
-            
             mask.save(masks_dir / f"{generated_img_basename}_{num_polygons}.png")
+            
         src_image.save(generated_images_dir / f"{generated_img_basename}.jpg")
         
         with logs_file_path.open('a', encoding='utf-8') as f:
@@ -186,7 +212,8 @@ def parce_args() -> argparse.Namespace:
     args.add_argument('--generated_images_dir', type=str, required=True)
     args.add_argument('--prompts_file_path', type=str, required=True)
     args.add_argument('--logs_file_path', type=str, required=True)
-    args.add_argument('--crop_size', type=int, default=640)
+    args.add_argument('--crop_size', type=int, default=512)
+    args.add_argument('--inference_resize', type=int, default=None)
     args.add_argument('--num_infer_steps', type=int, default=60)
     args.add_argument('--generate_prompt', type=bool, default=False)
     args.add_argument('--base_prompt', type=str, default="person, man")
