@@ -138,7 +138,7 @@ def run_sd_inference(
     transform = T.RandomCrop(crop_size)
     
     prompts = [prompt.strip() for prompt in prompts_file_path.read_text().splitlines()]
-    setup_log_file(logs_file_path)
+    # setup_log_file(logs_file_path)
 
     if regexpx_group is not None:
         patterns = get_regexps_by_group(REGEXP_SELECTORS.ALL_REGEXPS, regexpx_group)
@@ -235,9 +235,25 @@ if __name__ == "__main__":
         prompts_file_path=args.prompts_file_path,
         logs_file_path=args.logs_file_path,
         crop_size=args.crop_size,
+        inference_resize=args.inference_resize,
         num_inference_steps=args.num_infer_steps,
         generate_prompt=args.generate_prompt,
         base_prompt=args.base_prompt,
         max_generated_objects_per_image=args.max_gen_obj_per_img,
         regexpx_group=args.regexpx_group
     )
+
+    # crop_size = 130
+    # run_sd_inference(
+    #     device_id=1,
+    #     src_images_dir='/media/data2/vv/dvc_datasets/dataset_ppe/gerdau_hardhat_coco/images',
+    #     masks_dir=f'/media/data2/au/tasks/2022_11_14_little_flame_gunsan/masks_{crop_size}x{crop_size}',
+    #     generated_images_dir=f'/media/data2/au/tasks/2022_11_14_little_flame_gunsan/source_images_{crop_size}x{crop_size}',
+    #     prompts_file_path='/media/data2/au/tasks/2022_11_14_little_flame_gunsan/prompts_flame_tags.txt',
+    #     logs_file_path=f'/media/data2/au/tasks/2022_11_14_little_flame_gunsan/logs_fire_{crop_size}x{crop_size}.csv',
+    #     crop_size=crop_size,
+    #     inference_resize=512,
+    #     generate_prompt=True,
+    #     base_prompt='Fire flame',
+    #     max_generated_objects_per_image=1
+    # )
