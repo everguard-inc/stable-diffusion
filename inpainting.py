@@ -242,18 +242,3 @@ if __name__ == "__main__":
         max_generated_objects_per_image=args.max_gen_obj_per_img,
         regexpx_group=args.regexpx_group
     )
-
-    # crop_size = 130
-    # run_sd_inference(
-    #     device_id=1,
-    #     src_images_dir='/media/data2/vv/dvc_datasets/dataset_ppe/gerdau_hardhat_coco/images',
-    #     masks_dir=f'/media/data2/au/tasks/2022_11_14_little_flame_gunsan/masks_{crop_size}x{crop_size}',
-    #     generated_images_dir=f'/media/data2/au/tasks/2022_11_14_little_flame_gunsan/source_images_{crop_size}x{crop_size}',
-    #     prompts_file_path='/media/data2/au/tasks/2022_11_14_little_flame_gunsan/prompts_flame_tags.txt',
-    #     logs_file_path=f'/media/data2/au/tasks/2022_11_14_little_flame_gunsan/logs_fire_{crop_size}x{crop_size}.csv',
-    #     crop_size=crop_size,
-    #     inference_resize=512,
-    #     generate_prompt=True,
-    #     base_prompt='Fire flame',
-    #     max_generated_objects_per_image=1
-    # )
